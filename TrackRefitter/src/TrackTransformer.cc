@@ -308,7 +308,43 @@ vector<Trajectory> TrackTransformer::transform(const reco::TransientTrack& track
     return vector<Trajectory>();
   }
   
-  return trajectoriesSM;
+  // second refit
+
+  Trajectory trajectoryFW2 = trajectoriesSM.front();
+  trajectoryFW2.reverse();
+  vector<Trajectory> trajectories2 = theFitter->fit(trajectoryFW2.seed(),trajectoryFW2.recHits(),trajectoryFW2.geometricalInnermostState());
+  if(trajectories2.empty()){
+    LogTrace(metname)<<"No Track refitted!"<<endl;
+    return vector<Trajectory>();
+  }
+  Trajectory trajectoryBW2 = trajectories2.front();
+  vector<Trajectory> trajectoriesSM2 = theSmoother->trajectories(trajectoryBW2);
+  if(trajectoriesSM2.empty()){
+    LogTrace(metname)<<"No Track smoothed!"<<endl;
+    return vector<Trajectory>();
+  }
+
+  // end of second refit
+
+  // third refit
+
+  Trajectory trajectoryFW3 = trajectoriesSM2.front();
+  trajectoryFW3.reverse();
+  vector<Trajectory> trajectories3 = theFitter->fit(trajectoryFW3.seed(),trajectoryFW3.recHits(),trajectoryFW3.geometricalInnermostState());
+  if(trajectories3.empty()){
+    LogTrace(metname)<<"No Track refitted!"<<endl;
+    return vector<Trajectory>();
+  }
+  Trajectory trajectoryBW3 = trajectories3.front();
+  vector<Trajectory> trajectoriesSM3 = theSmoother->trajectories(trajectoryBW3);
+  if(trajectoriesSM3.empty()){
+    LogTrace(metname)<<"No Track smoothed!"<<endl;
+    return vector<Trajectory>();
+  }
+
+  // end of third refit
+  
+  return trajectoriesSM3;
 
 }
 
