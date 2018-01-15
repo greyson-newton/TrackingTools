@@ -294,13 +294,13 @@ vector<Trajectory> TrackTransformer::transform(const reco::TransientTrack& track
       LogTrace(metname)<<"No Track refitted!"<<endl;
       return trajectories2;
     }
+
     auto const & trajectoryBW2 = trajectories2.front();
     auto const & trajectoriesSM2 = theSmoother->trajectories(trajectoryBW2);
-    if(trajectoriesSM2.empty()){
-      LogTrace(metname)<<"No Track smoothed!"<<endl;
-    }
+
     // third refit
     if(trajectoriesSM2.empty()){
+      LogTrace(metname)<<"No Track smoothed!"<<endl;
       return trajectoriesSM2;
     }
     else{
