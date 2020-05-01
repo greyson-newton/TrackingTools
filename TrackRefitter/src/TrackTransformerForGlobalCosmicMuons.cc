@@ -215,9 +215,7 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   std::cout << "Prop Dir: " << propagationDirection << " FirstId " << innerId << " firstTSOS " << firstTSOS<<std::endl;
 
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  std::cout<<"Changes"<<recHitsForRefit.front()<<std::endl;
   std::cout<<"Detector Position:  "<<recHitsForReFit.front()<<std::endl;
-  std::cout<<"Is the surface valid? "<<(recHitsForReFit.front()->geographicalId() != DetId(innerId))<<std::endl;
   if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
     LogTrace(metname)<<"Propagation occurring"<<endl;
     std::cout  << "After if statement" <<  std::endl;
@@ -230,7 +228,6 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
     }
   }
   
-  std::cout << "Here 2" << std::endl;
 
   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
   
