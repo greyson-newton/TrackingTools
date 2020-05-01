@@ -212,21 +212,25 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   TrajectoryStateOnSurface firstTSOS = up ? track.outermostMeasurementState() : track.innermostMeasurementState();
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
 
-  LogTrace(metname) << "Prop Dir: " << propagationDirection << " FirstId " << innerId << " firstTSOS " << firstTSOS;
+  std::cout << "Prop Dir: " << propagationDirection << " FirstId " << innerId << " firstTSOS " << firstTSOS<<std::endl;
 
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-
-
+  std::cout<<"Changes"<<recHitsForRefit.front()<<std::endl;
+  std::cout<<"Detector Position:  "<<recHitsForReFit.front()<<std::endl;
+  std::cout<<"Is the surface valid? "<<(recHitsForReFit.front()->geographicalId() != DetId(innerId))<<std::endl;
   if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
     LogTrace(metname)<<"Propagation occurring"<<endl;
+    std::cout  << "After if statement" <<  std::endl;
     firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
-    LogTrace(metname)<<"Final destination: " << recHitsForReFit.front()->det()->surface().position() << endl;
+    std::cout << "Propogator initialized" << std::endl;
     if(!firstTSOS.isValid()){
+      std::cout<<"Prop error"<<std::endl;
       LogTrace(metname)<<"Propagation error!"<<endl;
       return vector<Trajectory>();
     }
   }
   
+  std::cout << "Here 2" << std::endl;
 
   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
   
@@ -238,6 +242,8 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   Trajectory trajectoryBW = trajectories.front();
     
   vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
+  
+  std::cout << "Here 3" << std::endl;
 
   if(trajectoriesSM.empty()){
     LogTrace(metname)<<"No Track smoothed!"<<endl;
