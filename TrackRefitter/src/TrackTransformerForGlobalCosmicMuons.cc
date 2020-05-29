@@ -110,16 +110,22 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
   TransientTrackingRecHit::ConstRecHitContainer tkHits;
   TransientTrackingRecHit::ConstRecHitContainer staHits;
 
-  for (trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit) {
-    if((*hit)->isValid()) {
-      if ( (*hit)->geographicalId().det() == DetId::Tracker && TrackerKeep((*hit)->geographicalId())) {
-		tkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
-      } else if ( (*hit)->geographicalId().det() == DetId::Muon && MuonKeep((*hit)->geographicalId())){
-		if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit){
-	  	LogTrace("Reco|TrackingTools|TrackTransformer") << "RPC Rec Hit discarged"; 
-	  	continue;
-		}
-		staHits.push_back(theMuonRecHitBuilder->build(&**hit));
+  for (trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit) 
+  {
+    if((*hit)->isValid()) 
+    {
+      if ( (*hit)->geographicalId().det() == DetId::Tracker && TrackerKeep((*hit)->geographicalId())) 
+      {
+		     tkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
+      } 
+      else if ( (*hit)->geographicalId().det() == DetId::Muon && MuonKeep((*hit)->geographicalId()))
+      {
+		     if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit)
+         {
+	  	      LogTrace("Reco|TrackingTools|TrackTransformer") << "RPC Rec Hit discarged"; 
+	  	      continue;
+		     }
+		     staHits.push_back(theMuonRecHitBuilder->build(&**hit));
       }
     }
   }
@@ -212,13 +218,13 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   TrajectoryStateOnSurface firstTSOS = up ? track.outermostMeasurementState() : track.innermostMeasurementState();
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
 
-  std::cout << "Prop Dir: " << propagationDirection << " FirstId " << innerId << " firstTSOS " << firstTSOS<<std::endl;
-
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  std::cout<<"Detector Position:  "<<recHitsForReFit.front()<<std::endl;
+  int numInvalidHits = 0;
+  TransientTrackingRecHit::ConstRecHitContainer validRecHits = validateRecHits(numInvalidHits, recHitsForReFit);
+
+  std::cout<<"count: "<< numInvalidHits <<std::endl;
   if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
     LogTrace(metname)<<"Propagation occurring"<<endl;
-    std::cout  << "After if statement" <<  std::endl;
     firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
     std::cout << "Propogator initialized" << std::endl;
     if(!firstTSOS.isValid()){
@@ -227,8 +233,6 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
       return vector<Trajectory>();
     }
   }
-  
-
   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
   
   if(trajectories.empty()){
@@ -239,8 +243,6 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   Trajectory trajectoryBW = trajectories.front();
     
   vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
-  
-  std::cout << "Here 3" << std::endl;
 
   if(trajectoriesSM.empty()){
     LogTrace(metname)<<"No Track smoothed!"<<endl;
@@ -269,8 +271,27 @@ bool TrackTransformerForGlobalCosmicMuons::TrackerKeep(DetId id) const{
   
   return retVal;
 }
+
+TransientTrackingRecHit::ConstRecHitContainer
+TrackTransformerForGlobalCosmicMuons::validateRecHits(int count, const TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit) const 
+{
+  TransientTrackingRecHit::ConstRecHitContainer validHits;
+  for(trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit)
+  {
+    if((*hit.front()->det()->surface().position) != null)
+    {
+      validHits.push_back(theTrackerRecHitBuilder->build(&**hit));
+      cout<<"position valid"<<endl;
+    }
+    else
+    {
+      count++;
+    }
+  }
+  return validHits;
+}
 //
-// Selection for Muon hits
+// Selectson for Muon hsts
 //
 bool TrackTransformerForGlobalCosmicMuons::MuonKeep(DetId id) const {
 
