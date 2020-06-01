@@ -132,14 +132,14 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
   
   if(staHits.empty()) return staHits;
 
-/*
+
   bool up = staHits.front()->globalPosition().y()>0 ? true : false;
 
   if(up){
     reverse(staHits.begin(),staHits.end());
     reverse(tkHits.begin(),tkHits.end());
   }
-*/
+
   copy(staHits.begin(),staHits.end(),back_inserter(tkHits));
 
   for(TransientTrackingRecHit::ConstRecHitContainer::const_iterator hit = tkHits.begin();
@@ -203,14 +203,21 @@ ESHandle<Propagator> TrackTransformerForGlobalCosmicMuons::propagator(bool up) c
 vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::Track& tr) const {
 
   const std::string metname = "Reco|TrackingTools|TrackTransformer";
-  
+
   reco::TransientTrack track(tr,magneticField(),trackingGeometry());   
 
+  if (track->quality(Track::highPurity))
+  {
+    cout << "track is high quality"<< endl;
+  }
   // Build the transient Rechits
   TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit = getTransientRecHits(track);
 
-  if(recHitsForReFit.size() < 2) return vector<Trajectory>();
-
+  if(recHitsForReFit.size() < 2) 
+  {
+    cout << "rechitsSize: "<< recHitsForReFit.size() << endl;
+    return vector<Trajectory>();
+  }
   bool up = recHitsForReFit.back()->globalPosition().y()>0 ? true : false;
   LogTrace(metname) << "Up ? " << up;
 
@@ -219,10 +226,7 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
 
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  int numInvalidHits = 0;
-  TransientTrackingRecHit::ConstRecHitContainer validRecHits = validateRecHits(numInvalidHits, recHitsForReFit);
 
-  std::cout<<"count: "<< numInvalidHits <<std::endl;
   if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
     LogTrace(metname)<<"Propagation occurring"<<endl;
     firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
@@ -271,7 +275,7 @@ bool TrackTransformerForGlobalCosmicMuons::TrackerKeep(DetId id) const{
   
   return retVal;
 }
-
+/*
 TransientTrackingRecHit::ConstRecHitContainer
 TrackTransformerForGlobalCosmicMuons::validateRecHits(int count, const TransientTrackingRecHit::ConstRecHitContainer& recHitsForReFit) const 
 {
@@ -290,6 +294,7 @@ TrackTransformerForGlobalCosmicMuons::validateRecHits(int count, const Transient
   }
   return validHits;
 }
+*/
 //
 // Selectson for Muon hsts
 //
