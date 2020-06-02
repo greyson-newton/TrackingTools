@@ -206,15 +206,11 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
 
   reco::TransientTrack track(tr,magneticField(),trackingGeometry());   
 
-  if (track->quality(Track::highPurity))
-  {
-    cout << "track is high quality"<< endl;
-  }
+  if (track->quality(Track::highPurity)){cout << "track is high quality"<< endl;}
   // Build the transient Rechits
   TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit = getTransientRecHits(track);
 
-  if(recHitsForReFit.size() < 2) 
-  {
+  if(recHitsForReFit.size() < 2) {
     cout << "rechitsSize: "<< recHitsForReFit.size() << endl;
     return vector<Trajectory>();
   }
@@ -226,17 +222,23 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
 
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-
-  if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
-    LogTrace(metname)<<"Propagation occurring"<<endl;
-    firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
-    std::cout << "Propogator initialized" << std::endl;
-    if(!firstTSOS.isValid()){
-      std::cout<<"Prop error"<<std::endl;
-      LogTrace(metname)<<"Propagation error!"<<endl;
-      return vector<Trajectory>();
-    }
+  if(recHitsForReFit.front()->det()->surface()!=nanl){
+    cout<<"detector surface is null"<<endl;
+    return
   }
+  else{
+      if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
+        LogTrace(metname)<<"Propagation occurring"<<endl;
+        firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
+        std::cout << "Propogator initialized" << std::endl;
+        if(!firstTSOS.isValid()){
+          std::cout<<"Prop error"<<std::endl;
+          LogTrace(metname)<<"Propagation error!"<<endl;
+          return vector<Trajectory>();
+        }
+      }    
+  }
+
   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
   
   if(trajectories.empty()){
