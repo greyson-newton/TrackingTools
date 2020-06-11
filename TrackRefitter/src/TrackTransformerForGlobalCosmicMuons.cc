@@ -130,8 +130,17 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
     }
   }
   
-  if(staHits.empty()) return staHits;
-
+  if(staHits.empty()){
+	  return staHits;
+	  cout<<"staHits empty"<<endl;
+  }
+/*  if(tkHits.empty()){cout<<"tkHits empty"<<endl;}
+  
+	if(staHits.front()->det()==NULL){cout<<"STA hits detector surface is null"<<endl;}
+	else{cout<<"STA hits NOT null"<<endl;}
+	
+	if(tkHits.front()->det()==NULL){cout<<"TK hits detector surface is null"<<endl;}
+	else{cout<<"TK hits NOT null"<<endl;}
 
   bool up = staHits.front()->globalPosition().y()>0 ? true : false;
 
@@ -139,7 +148,7 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
     reverse(staHits.begin(),staHits.end());
     reverse(tkHits.begin(),tkHits.end());
   }
-
+*/
   copy(staHits.begin(),staHits.end(),back_inserter(tkHits));
 
   for(TransientTrackingRecHit::ConstRecHitContainer::const_iterator hit = tkHits.begin();
@@ -176,7 +185,7 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
       LogTrace("TrackFitters") << " UNKNOWN HIT TYPE ";
   } 
   
-  return tkHits;
+  return staHits;
 }
 
 
@@ -205,8 +214,6 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   const std::string metname = "Reco|TrackingTools|TrackTransformer";
 
   reco::TransientTrack track(tr,magneticField(),trackingGeometry());   
-
-  if (track->quality(Track::highPurity)){cout << "track is high quality"<< endl;}
   // Build the transient Rechits
   TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit = getTransientRecHits(track);
 
@@ -222,11 +229,12 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
 
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  if(recHitsForReFit.front()->det()->surface()!=nanl){
+  if(recHitsForReFit.front()->det()==NULL){
     cout<<"detector surface is null"<<endl;
-    return
+    return vector<Trajectory>();
   }
   else{
+      cout<<"NOT null"<<endl;
       if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
         LogTrace(metname)<<"Propagation occurring"<<endl;
         firstTSOS = propagator(up)->propagate(firstTSOS, recHitsForReFit.front()->det()->surface());
