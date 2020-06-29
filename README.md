@@ -36,7 +36,7 @@ data_DT-1100-111111_2018UL_IOV1_CMSSW106_JSON-313041-320377_dataRun2_MuAl_v1_01.
 --gprcd IdealGeometry --is_Alca --T0 --iscosmics
 
 ./createJobs.py Cosmic-MC-data_ 1 \
-Cosmic-MC-data.db Cosmic-MC-data.py \
+data_DT-1100-111111_2018UL_IOV1_CMSSW106_JSON-313041-320377_dataRun2_MuAl_v1_01.db Cosmic-MC-data.py \
 --inputInBlocks \
 -s Cosmic-MC-data.sh \
 --validationLabel Cosmic-MC-data \
@@ -47,5 +47,5 @@ Cosmic-MC-data.db Cosmic-MC-data.py \
 --globalTag 110X_mcRun3_2021cosmics_realistic_deco_v7 \
 --createAlignNtuple --noCleanUp --noCSC \
 --gprcdconnect sqlite_file:GPR_Aug03_2019_SW1060_GT106X_dataRun2_newTkAl_v18_IOV1_dL_iter2.db \
---gprcd IdealGeometry --is_Alca --T0 --iscosmics
+--gprcd IdealGeometry --is_MC --T0 --iscosmics
 
