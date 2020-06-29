@@ -3,7 +3,9 @@
 export SCRAM_ARCH=slc7_amd64_gcc820
 
 git clone https://github.com/cms-mual/Alignment.git -b CMSSW_11_0_X
+
 git clone git@github.com:greyson-newton/TrackingTools.git -b bugfix-make-cosmic-work-greysonnewton
+
 git clone https://github.com/cms-mual/MuAlSupplementaryFiles.git -b CMSSW_10_1_X
 
 
