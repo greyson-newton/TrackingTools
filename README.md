@@ -1,14 +1,25 @@
 # TrackingTools
 
+export SCRAM_ARCH=slc7_amd64_gcc820
+
+git clone https://github.com/cms-mual/Alignment.git -b CMSSW_11_0_X
+git clone git@github.com:greyson-newton/TrackingTools.git -b bugfix-make-cosmic-work-greysonnewton
+git clone https://github.com/cms-mual/MuAlSupplementaryFiles.git -b CMSSW_10_1_X
+
+
+
 bugfix-make-cosmic-work-greysonnewton
 
 JSON:
+
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-316271_13TeV_PromptReco_Collisions18_JSON.txt .
 
 GPR:
+
 cp /afs/cern.ch/cms/CAF/CMSALCA/ALCA_MUONALIGN/www/muonGeometries/UL2018/data_DT-1100-111111_2018UL_IOV1_CMSSW106_JSON-313041-320377_dataRun2_MuAl_v1_01.db .
 
 Edit Config File:
+
 https://github.com/cms-mual/Alignment/commit/31c24cb68b5de20ed2bb90f3d4abd618a1556bbc
 
 ./createJobs.py data_DT-1100-110001_MuAlGlobalCosmics-06Jun2018-v1_2018A_ 1 \
