@@ -9,9 +9,6 @@ git clone git@github.com:greyson-newton/TrackingTools.git -b bugfix-make-cosmic-
 git clone https://github.com/cms-mual/MuAlSupplementaryFiles.git -b CMSSW_10_1_X
 
 
-
-bugfix-make-cosmic-work-greysonnewton
-
 JSON:
 
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/PromptReco/Cert_314472-316271_13TeV_PromptReco_Collisions18_JSON.txt .
@@ -37,3 +34,18 @@ data_DT-1100-111111_2018UL_IOV1_CMSSW106_JSON-313041-320377_dataRun2_MuAl_v1_01.
 --createAlignNtuple --noCleanUp --noCSC \
 --gprcdconnect sqlite_file:GPR_Aug03_2019_SW1060_GT106X_dataRun2_newTkAl_v18_IOV1_dL_iter2.db \
 --gprcd IdealGeometry --is_Alca --T0 --iscosmics
+
+./createJobs.py Cosmic-MC-data_ 1 \
+Cosmic-MC-data.db Cosmic-MC-data.py \
+--inputInBlocks \
+-s Cosmic-MC-data.sh \
+--validationLabel Cosmic-MC-data \
+--b --user_mail youremail --minTrackPt 30 --maxTrackPt 200 --maxDxy 0.2 \
+--minNCrossedChambers 1 --residualsModel pureGaussian --peakNSigma 1.6 \
+--station123params 110001 --station4params 100001 --cscparams 100001 --useResiduals 1100 \
+--mapplots --curvatureplots --segdiffplots --extraPlots \
+--globalTag 110X_mcRun3_2021cosmics_realistic_deco_v7 \
+--createAlignNtuple --noCleanUp --noCSC \
+--gprcdconnect sqlite_file:GPR_Aug03_2019_SW1060_GT106X_dataRun2_newTkAl_v18_IOV1_dL_iter2.db \
+--gprcd IdealGeometry --is_Alca --T0 --iscosmics
+
