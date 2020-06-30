@@ -103,6 +103,8 @@ void TrackTransformerForGlobalCosmicMuons::setServices(const EventSetup& setup){
   tTopo_=tTopoHand.product();
 }
 
+int m_numValidHits=0;
+int m_numTkHits=0;
 
 TransientTrackingRecHit::ConstRecHitContainer
 TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientTrack& track) const {
@@ -114,9 +116,11 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
   {
     if((*hit)->isValid()) 
     {
+      m_numValidHits++;
       //DetId hitId = (*hit)->geographicalId();
       if ( (*hit)->geographicalId().det() == DetId::Tracker && TrackerKeep((*hit)->geographicalId())) 
       {
+	m_numTkHits++;
         tkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
         //cout<<"Hit Position:  "<<glbpoint<<endl;      
       } 
@@ -133,13 +137,15 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
     }
 
   }
-  
+  std::cout<<"NUMBER OF VALID HITS: "<<m_numValidHits<<std::endl;
+  std::cout<<"NUMBER OF TRACKER HITS: "<<m_numTkHits<<std::endl;
+
   if(staHits.empty()){
 	  return staHits;
 	  cout<<"staHits empty"<<endl;
   }
-/*  if(tkHits.empty()){cout<<"tkHits empty"<<endl;}
-  
+  if(tkHits.empty()){cout<<"tkHits empty"<<endl;}
+/*  
 	if(staHits.front()->det()==NULL){cout<<"STA hits detector surface is null"<<endl;}
 	else{cout<<"STA hits NOT null"<<endl;}
 	
@@ -189,7 +195,7 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
       LogTrace("TrackFitters") << " UNKNOWN HIT TYPE ";
   } 
   
-  return staHits;
+  return tkHits;
 }
 
 
@@ -221,7 +227,7 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit = getTransientRecHits(track);
 
   if(recHitsForReFit.size() < 2) {
-    //cout << "rechitsSize: "<< recHitsForReFit.size() << endl;
+    cout << "rechitsSize: "<< recHitsForReFit.size() << endl;
     return vector<Trajectory>();
   }
   bool up = recHitsForReFit.back()->globalPosition().y()>0 ? true : false;
@@ -230,45 +236,66 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   PropagationDirection propagationDirection = up ? oppositeToMomentum : alongMomentum;
   TrajectoryStateOnSurface firstTSOS = up ? track.outermostMeasurementState() : track.innermostMeasurementState();
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
-
+  int m_numPropOccuring = 0;
+  int m_numPropError = 0;
+  int m_numNullRecHits = 0;
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  if(recHitsForReFit.front()->det()==NULL){
-    //cout<<"detector surface is null"<<endl;
+  std::cout<<"HERE ONE"<<std::endl;
+  DetId hitTkId = recHitsForReFit.front()->geographicalId();
+  if(trackingGeometry()->idToDet(hitTkId)==NULL){
+    cout<<"detector surface is null"<<endl;
+    m_numNullRecHits++;
     return vector<Trajectory>();
   }
   else{
+      std::cout<<"HERE TWO"<<std::endl;
+
       DetId hitId = recHitsForReFit.front()->geographicalId();
       //cout<<"NOT null"<<endl;
-      if(recHitsForReFit.front()->geographicalId() != DetId(innerId)){
+      if(hitId != DetId(innerId)){
         LogTrace(metname)<<"Propagation occurring"<<endl;
+	m_numPropOccuring++;
         firstTSOS = propagator(up)->propagate(firstTSOS, trackingGeometry()->idToDet(hitId)->surface());
         //std::cout << "Propogator initialized" << std::endl;
         if(!firstTSOS.isValid()){
           //std::cout<<"Prop error"<<std::endl;
-          LogTrace(metname)<<"Propagation error!"<<endl;
+          cout<<"Propagation error!"<<endl;
+	  m_numPropError++;
           return vector<Trajectory>();
         }
       }    
   }
+  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
+  std::cout<<"NUMBER OF PROP Attempts/Failed "<<m_numPropOccuring<<"/"<<m_numPropError<<std::endl;
+  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
 
-  vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
-  
-  if(trajectories.empty()){
-    LogTrace(metname)<<"No Track refitted!"<<endl;
+  if(recHitsForReFit.empty()){
+    cout<<"No Track refitted!"<<endl;
     return vector<Trajectory>();
   }
-  
-  Trajectory trajectoryBW = trajectories.front();
-    
-  vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
 
+  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
+  std::cout<<"NUMBER OF PROP Attempts/Failed "<<m_numPropOccuring<<"/"<<m_numPropError<<std::endl;
+  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
+
+  if(hitTkId != DetId(innerId)&&(firstTSOS.isValid())&&(!recHitsForReFit.empty())){
+   cout<<"HERE 4"<<endl;
+   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
+   Trajectory trajectoryBW = trajectories.front();
+   cout<<"MIDDLE"<<std::endl; 
+   vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
+   cout<<"HERE 5"<<endl;
+   return trajectoriesSM;
+  }
+ else{
+   return vector<Trajectory>();
+  }
+/*
   if(trajectoriesSM.empty()){
-    LogTrace(metname)<<"No Track smoothed!"<<endl;
+    cout<<"No Track smoothed!"<<endl;
     return vector<Trajectory>();
   }
-  
-  return trajectoriesSM;
-
+*/
 }
 
 //
