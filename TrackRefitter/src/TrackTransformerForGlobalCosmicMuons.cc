@@ -105,6 +105,9 @@ void TrackTransformerForGlobalCosmicMuons::setServices(const EventSetup& setup){
 
 int m_numValidHits=0;
 int m_numTkHits=0;
+int m_numStHits=0;
+int m_numNullHits=0;
+
 
 TransientTrackingRecHit::ConstRecHitContainer
 TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientTrack& track) const {
@@ -114,35 +117,40 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
 
   for (trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit) 
   {
-    if((*hit)->isValid()) 
+    if((*hit)== NULL) 
     {
-      m_numValidHits++;
-      //DetId hitId = (*hit)->geographicalId();
-      if ( (*hit)->geographicalId().det() == DetId::Tracker && TrackerKeep((*hit)->geographicalId())) 
+      m_numNullHits++;
+      continue;
+    }
+    else
+    {
+      if((*hit)->isValid()) 
       {
-	m_numTkHits++;
-        tkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
-        //cout<<"Hit Position:  "<<glbpoint<<endl;      
-      } 
-      else if ( (*hit)->geographicalId().det() == DetId::Muon && MuonKeep((*hit)->geographicalId()))
-      {
-		     if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit)
-         {
-	  	      LogTrace("Reco|TrackingTools|TrackTransformer") << "RPC Rec Hit discarged"; 
-	  	      continue;
-		     }
-         staHits.push_back(theMuonRecHitBuilder->build(&**hit));
-         //cout<<"Hit Position STANDALONE:  "<<glbpoint<<endl;  		     
+        //DetId hitId = (*hit)->geographicalId();
+        if ( (*hit)->geographicalId().det() == DetId::Tracker && TrackerKeep((*hit)->geographicalId())) 
+        {
+          m_numTkHits++;
+          tkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
+          //cout<<"Hit Position:  "<<glbpoint<<endl;      
+        } 
+        else if ( (*hit)->geographicalId().det() == DetId::Muon && MuonKeep((*hit)->geographicalId()))
+        {
+           if( (*hit)->geographicalId().subdetId() == 3 && !theRPCInTheFit)
+           {
+              LogTrace("Reco|TrackingTools|TrackTransformer") << "RPC Rec Hit discarged"; 
+              continue;
+           }
+           staHits.push_back(theMuonRecHitBuilder->build(&**hit));
+           m_numStHits++;
+           //cout<<"Hit Position STANDALONE:  "<<glbpoint<<endl;           
+        }
       }
     }
-
   }
-  std::cout<<"NUMBER OF VALID HITS: "<<m_numValidHits<<std::endl;
-  std::cout<<"NUMBER OF TRACKER HITS: "<<m_numTkHits<<std::endl;
 
   if(staHits.empty()){
-	  return staHits;
 	  cout<<"staHits empty"<<endl;
+    return staHits;
   }
   if(tkHits.empty()){cout<<"tkHits empty"<<endl;}
 /*  
@@ -153,7 +161,6 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
 	else{cout<<"TK hits NOT null"<<endl;}
 
   bool up = staHits.front()->globalPosition().y()>0 ? true : false;
-
   if(up){
     reverse(staHits.begin(),staHits.end());
     reverse(tkHits.begin(),tkHits.end());
@@ -196,9 +203,29 @@ TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientT
   } 
   
   return tkHits;
+  
 }
+/*
+TransientTrackingRecHit::ConstRecHitContainer
+TrackTransformerForGlobalCosmicMuons::getTransientRecHits(const reco::TransientTrack& track) const {
+  
+  TransientTrackingRecHit::ConstRecHitContainer validTkHits;
 
+  for (trackingRecHit_iterator hit = track.recHitsBegin(); hit != track.recHitsEnd(); ++hit) 
+  {
+    if((*hit)!= NULL) 
+    {
+      validTkHits.push_back(theTrackerRecHitBuilder->build(&**hit));
+    }
+    else
+    {
+      m_numNullHits++;
+    }
 
+  }  
+
+}
+*/
 /// the refitter used to refit the reco::Track
 ESHandle<TrajectoryFitter> TrackTransformerForGlobalCosmicMuons::fitter(bool up) const{
   if(up) return theFitterOI;
@@ -217,19 +244,23 @@ ESHandle<Propagator> TrackTransformerForGlobalCosmicMuons::propagator(bool up) c
 }
 
 
-
 /// Convert Tracks into Trajectories
 vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::Track& tr) const {
+  cout<<"----------New Event----------"<<endl;  
+  cout<<"Getting Hits..."<<endl;
+  cout<<"Tracker hits: "<<m_numTkHits<<endl;
+  cout<<"StandAlone hits: "<<m_numStHits<<endl;
+  cout<<"NULL hits: "<<m_numNullHits<<endl;
+  cout<<"Transforming..."<<endl;
 
   const std::string metname = "Reco|TrackingTools|TrackTransformer";
   reco::TransientTrack track(tr,magneticField(),trackingGeometry());   
   // Build the transient Rechits
   TransientTrackingRecHit::ConstRecHitContainer recHitsForReFit = getTransientRecHits(track);
 
-  if(recHitsForReFit.size() < 2) {
-    cout << "rechitsSize: "<< recHitsForReFit.size() << endl;
-    return vector<Trajectory>();
-  }
+  if(recHitsForReFit.size() < 2) {return vector<Trajectory>();}
+
+  cout << "Size of recHitsForReFit: "<< recHitsForReFit.size() << endl;
   bool up = recHitsForReFit.back()->globalPosition().y()>0 ? true : false;
   LogTrace(metname) << "Up ? " << up;
 
@@ -238,65 +269,64 @@ vector<Trajectory> TrackTransformerForGlobalCosmicMuons::transform(const reco::T
   unsigned int innerId = up ? track.track().outerDetId() : track.track().innerDetId();
   int m_numPropOccuring = 0;
   int m_numPropError = 0;
-  int m_numNullRecHits = 0;
   TrajectorySeed seed(PTrajectoryStateOnDet(),TrajectorySeed::recHitContainer(),propagationDirection);
-  std::cout<<"HERE ONE"<<std::endl;
   DetId hitTkId = recHitsForReFit.front()->geographicalId();
+
   if(trackingGeometry()->idToDet(hitTkId)==NULL){
-    cout<<"detector surface is null"<<endl;
-    m_numNullRecHits++;
+    cout<<"Tracker ID is null"<<endl;
     return vector<Trajectory>();
   }
-  else{
-      std::cout<<"HERE TWO"<<std::endl;
-
-      DetId hitId = recHitsForReFit.front()->geographicalId();
+  else
+  {
+      cout<<"Tracker ID not null - Attempting to propagate hits"<<endl;
       //cout<<"NOT null"<<endl;
-      if(hitId != DetId(innerId)){
-        LogTrace(metname)<<"Propagation occurring"<<endl;
-	m_numPropOccuring++;
-        firstTSOS = propagator(up)->propagate(firstTSOS, trackingGeometry()->idToDet(hitId)->surface());
-        //std::cout << "Propogator initialized" << std::endl;
-        if(!firstTSOS.isValid()){
-          //std::cout<<"Prop error"<<std::endl;
-          cout<<"Propagation error!"<<endl;
-	  m_numPropError++;
+      if(hitTkId != DetId(innerId))
+      {
+        //cout<<"Propagation occurring"<<endl;
+        firstTSOS = propagator(up)->propagate(firstTSOS, trackingGeometry()->idToDet(hitTkId)->surface());
+        m_numPropOccuring++;
+
+        if(!firstTSOS.isValid())
+        {
+          //cout<<"Propagation error!"<<endl;
+	        m_numPropError++;
           return vector<Trajectory>();
         }
       }    
   }
-  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
-  std::cout<<"NUMBER OF PROP Attempts/Failed "<<m_numPropOccuring<<"/"<<m_numPropError<<std::endl;
-  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
 
-  if(recHitsForReFit.empty()){
-    cout<<"No Track refitted!"<<endl;
-    return vector<Trajectory>();
+  if(m_numPropOccuring>m_numPropError)
+  {
+    cout<<"Propagation Succesful!"<<endl;
   }
+  else
+  {
+    cout<<"Propagation Unsuccesful! Next Event ->"<<endl;
+    cout<<""<<endl;
+  }
+  
+  if(hitTkId != DetId(innerId)&&(firstTSOS.isValid())&&(!recHitsForReFit.empty()))
+  {
+   cout<<"For a NON EMPTY list of recHits with a VALID propagator: "<<endl;
+   if(recHitsForReFit.front()!=NULL)
+   {
+      cout<<"Attempting to fit trajectories using:"<<endl;
+      cout<<"---List of hits"<<endl;
+      cout<<"---Trajectory Seed"<<endl;
+      cout<<"---Trajectory Propagator"<<endl;
 
-  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
-  std::cout<<"NUMBER OF PROP Attempts/Failed "<<m_numPropOccuring<<"/"<<m_numPropError<<std::endl;
-  std::cout<<"NUMBER OF NULL RECHITS: "<<m_numNullRecHits<<std::endl;
+      vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
+      Trajectory trajectoryBW = trajectories.front();
+      vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
+      return trajectoriesSM;
+   }
+  
+  else {return vector<Trajectory>();}
 
-  if(hitTkId != DetId(innerId)&&(firstTSOS.isValid())&&(!recHitsForReFit.empty())){
-   cout<<"HERE 4"<<endl;
-   vector<Trajectory> trajectories = fitter(up)->fit(seed,recHitsForReFit,firstTSOS);
-   Trajectory trajectoryBW = trajectories.front();
-   cout<<"MIDDLE"<<std::endl; 
-   vector<Trajectory> trajectoriesSM = smoother(up)->trajectories(trajectoryBW);
-   cout<<"HERE 5"<<endl;
-   return trajectoriesSM;
   }
- else{
-   return vector<Trajectory>();
-  }
-/*
-  if(trajectoriesSM.empty()){
-    cout<<"No Track smoothed!"<<endl;
-    return vector<Trajectory>();
-  }
-*/
+  else{return vector<Trajectory>();}
 }
+
 
 //
 // Selection for Tracker Hits
@@ -373,3 +403,4 @@ bool TrackTransformerForGlobalCosmicMuons::MuonKeep(DetId id) const {
 	
 	return true;
 }
+

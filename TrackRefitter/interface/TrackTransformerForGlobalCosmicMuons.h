@@ -68,6 +68,9 @@ public:
   TransientTrackingRecHit::ConstRecHitContainer
     getTransientRecHits(const reco::TransientTrack& track) const;
 
+ // TransientTrackingRecHit::ConstRecHitContainer
+   // validateTransientRecHits(const reco::TransientTrack& track) const;
+
   /// check (via options) if this is a tracker rec hit for removal
   bool TrackerKeep(DetId id) const;
   /// check (via options) if this is a muon rec hit for removal
